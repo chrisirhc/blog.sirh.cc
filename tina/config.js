@@ -41,6 +41,13 @@ export default defineConfig({
 				},
 				fields: [
 					{
+						name: 'draft',
+						label: 'Draft',
+						type: 'boolean',
+						required: true,
+						description: 'If this is checked the post will not be published',
+					},
+					{
 						name: "layout",
 						label: "Layout",
 						type: "string",

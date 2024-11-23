@@ -8,10 +8,12 @@ import ColorScript from "../components/ColorScript.astro";
 import { SITE_TITLE, SITE_DESCRIPTION } from "../config";
 
 // Use Astro.glob() to fetch all posts, and then sort them by date.
-const posts = (await Astro.glob("../posts/*.md")).sort(
-	(a, b) =>
-		new Date(b.frontmatter.updated || b.frontmatter.added).valueOf() -
-		new Date(a.frontmatter.updated || a.frontmatter.added).valueOf()
+const posts = (await Astro.glob("../posts/*.md"))
+	.filter((post) => !post.frontmatter.draft)
+	.sort(
+		(a, b) =>
+			new Date(b.frontmatter.updated || b.frontmatter.added).valueOf() -
+			new Date(a.frontmatter.updated || a.frontmatter.added).valueOf()
 );
 ---
 

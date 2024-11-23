@@ -9,7 +9,8 @@ import { SITE_TITLE, SITE_DESCRIPTION } from "../config";
 import { Content as About } from "./about.md";
 import getTags from "../scripts/getTags";
 
-const posts = await Astro.glob("../posts/*.md");
+const posts = (await Astro.glob("../posts/*.md"))
+	.filter((post) => !post.frontmatter.draft);
 
 const tags = getTags(posts);
 ---

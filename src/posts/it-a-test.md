@@ -1,4 +1,5 @@
 ---
+draft: true
 layout: ../layouts/BlogPost.astro
 title: It's a test
 slug: it-a-test
