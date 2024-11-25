@@ -9,3 +9,4 @@ tags:
 added: 2024-11-25T16:56:48.487Z
 ---
 
+https://github.com/chrisirhc/precompiled-grpc-in-bazel-python
