@@ -9,8 +9,13 @@ tags:
 added: 2024-11-25T16:56:48.487Z
 ---
 
+Reference repository: https://github.com/chrisirhc/precompiled-grpc-in-bazel-python
+
 Logical steps:
 1. Set up an example repository running proto/grpc compiler.
+    * Use bazel modules, current standard for adding different capabilities into a repo
+    * Use the same example proto files from grpc/ and follow their layout.
+    * Fix weird edge cases with importing newer bazel deps.
 2. Prepare the executable tool.
     * Tools have their arguments as an input API. As long as the input arguments are compatible, we can swap out the tool. I checked that grpcio-tools offers the protoc compatible tool, since it is actually protoc but with a built-in grpc plugin.
     1. Add grpcio-tools Python package from pip.
