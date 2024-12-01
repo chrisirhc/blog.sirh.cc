@@ -17,7 +17,7 @@ Target Audience:
 * Goes into customizing some rules without much depth into the rules themselves. It's a bit of learn by practicing by example.
 
 Context:
-* Used an older version of protobuf in a bazel monorepo (3.9+).
+* Used an older version of protobuf in a bazel monorepo (3.19).
 * Wanted:
   * Type annotations in generated Python proto libraries
   * General greenkeeping (see evergreen engineering, greenkeeping terminology)
