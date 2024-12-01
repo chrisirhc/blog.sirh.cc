@@ -21,6 +21,11 @@ Context:
 * Wanted:
   * Type annotations in generated Python proto libraries
   * General greenkeeping (see evergreen engineering, greenkeeping terminology)
+* Challenges encountered:
+  * Mac users were seeing build errors since the repository used hermetic_cc_toolchain. It was the issue reported at https://github.com/uber/hermetic_cc_toolchain/issues/10#issuecomment-1653731027 .
+* Tried:
+  * Looking for precompiled toolchains. Found https://github.com/aspect-build/toolchains_protoc .
+  * However, since the repository makes use of gRPC, the gRPC plugin itself requires a C++ compilation, as per https://github.com/aspect-build/toolchains_protoc/issues/21#issuecomment-2455503596 . 
 
 Steps:
 1. Set up an example repository running proto/grpc compiler.
@@ -37,3 +42,6 @@ Steps:
 3. Replace the tool used for the grpc compilation.
     1. Copy in python_grpc_compile definition and get it to work locally.
     2. Point grpc_plugin into a built-in tool, to validate whether it's using the right compiled protoc executable.
+
+Gotchas:
+* Which version of proto compiler is this using? Find out by going to: https://github.com/grpc/grpc/blob/v1.67.0/bazel/grpc_deps.bzl
