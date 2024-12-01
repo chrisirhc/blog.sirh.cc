@@ -15,7 +15,10 @@ Logical steps:
 1. Set up an example repository running proto/grpc compiler.
     * Use bazel modules, current standard for adding different capabilities into a repo
     * Use the same example proto files from grpc/ and follow their layout.
-    * Fix weird edge cases with importing newer bazel deps.
+        * Start from: https://github.com/rules-proto-grpc/rules_proto_grpc/tree/master/examples/python/python_grpc_compile
+        * Trace it to https://github.com/rules-proto-grpc/rules_proto_grpc/tree/master/modules
+    * Change paths so that the examples work again.
+    * Fix weird edge cases with importing newer version bazel deps.
 2. Prepare the executable tool.
     * Tools have their arguments as an input API. As long as the input arguments are compatible, we can swap out the tool. I checked that grpcio-tools offers the protoc compatible tool, since it is actually protoc but with a built-in grpc plugin.
     1. Add grpcio-tools Python package from pip.
