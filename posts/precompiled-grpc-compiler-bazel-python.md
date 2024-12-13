@@ -7,16 +7,17 @@ tags:
   - technical
 added: 2024-11-25T16:56:48.487Z
 ---
-
+# Using a precompiled gRPC plugin in Bazel monorepo for Python
 Reference repository: https://github.com/chrisirhc/precompiled-grpc-in-bazel-python
 
-Target Audience:
-* If you're curious what the Developer Tools and Developer Platform Engineering teams do.
-* Wondering what working with Bazel on a monorepo is like when you need to customize some tooling.
+## Who is this written for?
+* Those who are curious what Developer Tools and Developer Platform Engineering teams work on.
+* Get a peek into what working with Bazel on a monorepo is like.
+* how does adding some customizations on open source rulesets look like on Bazel
 * Goes into customizing some rules without much depth into the rules themselves. It's a bit of learn by practicing by example.
 
 Expects:
-* some understanding of what tools that apply actions on code
+* some understanding of tools apply actions on code
 * you don't have to know what protobuf or grpc are, except that they are tools that generate code in multiple programming languages including Python.
 
 ## Quick bit on Protocol Buffers (protobuf) and gRPC
@@ -24,32 +25,96 @@ Expects:
 [gRPC](https://grpc.io) is a Remote Procedure Call (RPC) interface built on top of protobuf format. An over-simplistic analogy is to relate how [tRPC](https://trpc.io/docs/rpc)/REST is to JSON is similar to how gRPC is to protobuf.
 ## 🎬 Starting State 
 ### Python monorepo managed by Bazel (aka “the monorepo”)
-A number of [Python](https://www.python.org) services and libraries are in a monorepo managed by [Bazel](https://bazel.build). Some of these services and libraries use protobuf, so the monorepo also contains .proto files. The Bazel setup uses [rules_proto](https://github.com/bazelbuild/rules_proto) and [rules_proto_grpc](https://rules-proto-grpc.com/) rules to execute the protoc tool along with a gRPC plugin to compile .proto files into Python protobuf and gRPC code for interacting with protobuf and gRPC endpoints.
+A number of [Python](https://www.python.org) services and libraries are in a monorepo managed by [Bazel](https://bazel.build). Some services and libraries use protobuf, so the monorepo contains .proto files. The monorepo uses [rules_proto](https://github.com/bazelbuild/rules_proto) and [rules_proto_grpc](https://rules-proto-grpc.com/) rules to execute the protoc tool along with a gRPC plugin to compile .proto files into Python protobuf and gRPC code for interacting with protobuf and gRPC endpoints.
 ### Users reported that building locally on Mac fails
 Due to [a Mac build issue](https://github.com/uber/hermetic_cc_toolchain/issues/10#issuecomment-1653731027) on hermetic cc toolchain, compiling protoc on Mac fails. This breaks local development on Mac.
 ## 🎯 Goal State
-* Building on Mac should just work
-* Even better, shouldn’t need to build protoc on Mac (or supported platform).
+* Building on Mac should just work™️
+* Even better: one shouldn’t need to wait for any C++ compilation on a supported set of platforms.
 ## 🕵️‍♀️ Investigation
 ### Read the rule definition
-* The targets in question look like those [here in the example repo](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/blob/d2fe4a589614893bbcc5825aa259cb295abfdfa4/BUILD.bazel) . 
-* Digging further, into the [python_grpc_compile](https://github.com/rules-proto-grpc/rules_proto_grpc/blob/d17b5b16c8b12143c6f1b78dabd6bbc228e89b58/modules/python/python_grpc_compile.bzl) rule definition, it depends on proto_plugin and grpc_plugin.  
-* proto_plugin uses the default builtin protoc. This can be replaced with a precompiled tool via toolchains_protoc. This was recently the default behavior in rules_python (cite)
-* However, [gRPC plugin](https://github.com/rules-proto-grpc/rules_proto_grpc/blob/d17b5b16c8b12143c6f1b78dabd6bbc228e89b58/modules/python/BUILD.bazel#L34) points to a target, [grpc_python_plugin](https://github.com/grpc/grpc/blob/fe8bd94c924f98ae4292ec8dfc969dbd802ec886/src/compiler/BUILD#L120), that needs to be compiled from C++. 
+The problematic targets look like these [here in the example repo](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/blob/d2fe4a589614893bbcc5825aa259cb295abfdfa4/BUILD.bazel) :
+```python
+load("@rules_proto_grpc_python//:defs.bzl", "python_grpc_compile")
+
+python_grpc_compile(
+    name = "thing_python_grpc",
+    protos = ["@rules_proto_grpc_example_protos//:thing_proto"],
+)
+```
+
+Digging further into the [python_grpc_compile](https://github.com/rules-proto-grpc/rules_proto_grpc/blob/d17b5b16c8b12143c6f1b78dabd6bbc228e89b58/modules/python/python_grpc_compile.bzl) rule definition, it depends on proto_plugin and grpc_plugin:
+```python
+python_grpc_compile = rule(
+    implementation = proto_compile_impl,
+    attrs = dict(
+        proto_compile_attrs,
+        _plugins = attr.label_list(
+            providers = [ProtoPluginInfo],
+            default = [
+                Label("//:proto_plugin"),
+                Label("//:grpc_plugin"),
+            ],
+            cfg = "exec",
+            doc = "List of protoc plugins to apply",
+        ),
+    ),
+    toolchains = proto_compile_toolchains,
+)
+```
+
+Inspecting the targets proto_plugin and grpc_plugin in the [BUILD.bazel](https://github.com/rules-proto-grpc/rules_proto_grpc/blob/d17b5b16c8b12143c6f1b78dabd6bbc228e89b58/modules/python/BUILD.bazel):
+```python
+proto_plugin(
+    name = "proto_plugin",
+    exclusions = [
+        "google/protobuf",
+    ],
+    outputs = ["{protopath|python}_pb2.py"],
+    protoc_plugin_name = "python",
+    visibility = ["//visibility:public"],
+)
+
+proto_plugin(
+    name = "grpc_plugin",
+    exclusions = [
+        "google/protobuf",
+    ],
+    outputs = ["{protopath|python_grpc}_pb2_grpc.py"],
+    tool = "@grpc//src/compiler:grpc_python_plugin",
+    visibility = ["//visibility:public"],
+)
+```
+proto_plugin uses the default builtin protoc. This can be replaced with a precompiled tool via toolchains_protoc. This is now the default behavior in rules_python (citation).
+
+However, [gRPC plugin](https://github.com/rules-proto-grpc/rules_proto_grpc/blob/d17b5b16c8b12143c6f1b78dabd6bbc228e89b58/modules/python/BUILD.bazel#L34) points to a target, [grpc_python_plugin](https://github.com/grpc/grpc/blob/fe8bd94c924f98ae4292ec8dfc969dbd802ec886/src/compiler/BUILD#L120), that points to a C++ source file (`python_plugin.cc`) needs to be compiled from C++:
+```python
+grpc_proto_plugin(
+    name = "grpc_python_plugin",
+    srcs = ["python_plugin.cc"],
+    deps = [":grpc_plugin_support"],
+)
+```
 ### Find similar reports/requests
+I found a number of comments and issues that indicate that the issue exists, and that I’m not missing an obvious solution. Here’s what I found:
 * Request for rules_proto_grpc to use a precompiled protoc executable ([rules_proto_grpc\#88](https://github.com/rules-proto-grpc/rules_proto_grpc/issues/88))
 * [Comment in toolchains_protoc](￼) indicating that usages of grpc plugin require C++ compilation
 * Request for a precompiled gRPC plugin ([gprc\#38078](https://github.com/grpc/grpc/issues/38078))
-* These reports indicate that the issue exists.
-
 ### Look for precompiled gRPC plugin
-* Found [gRPC’s Python Quick start](https://grpc.io/docs/languages/python/quickstart/ "https://grpc.io/docs/languages/python/quickstart/") mentions graciously-tools package.
-* It can be executed like protoc, supporting the same arguments.
-* It comes with built-in gRPC plug-in.
-### Formulate a solution
-* rules_python contains rules that allow you to execute ￼python code.
-* execute the grpcio-tools package similar to any other Python executable.
+I know from the above search that there isn’t a straightforward solution 
+* Found [gRPC’s Python Quick start](https://grpc.io/docs/languages/python/quickstart/ "https://grpc.io/docs/languages/python/quickstart/") mentions [grpcio-tools package](https://pypi.org/project/grpcio-tools/).
+* It can be [executed like protoc](https://pypi.org/project/grpcio-tools/#:~:text=Usage), supporting the same arguments.
+* It comes with a [built-in gRPC plug-in](https://pypi.org/project/grpcio-tools/#:~:text=INCLUDE%20%2D%2Dpython_out=$OUTPUT%20%2D%2D-,grpc_python_out,-=$OUTPUT%20$PROTO_FILES).
 
+Here’s the snippet from the [Quick Start](https://grpc.io/docs/languages/python/quickstart/):
+```bash
+# grpc_python_out is the grpc plugin
+$ python -m grpc_tools.protoc -I$INCLUDE --python_out=$OUTPUT --grpc_python_out=$OUTPUT $PROTO_FILES
+```
+Note how the arguments match those in of protoc in https://protobuf.dev/reference/python/python-generated/#invocation .
+### Formulate a solution
+* [rules_python](￼) contains the [py_binary rule](https://rules-python.readthedocs.io/en/latest/api/rules_python/python/private/py_binary_rule.html#py_binary) which makes ￼Python code into executables.
+* Python’s [runpy](￼) executes modules similar to `-m` on the command line, allowing me to execute the protoc tool similar to the Quick Start command.
 ## ✨ Implementation 
 1. Prepare the executable tool.
    * Tools have their arguments as an input API. As long as the input arguments are compatible, we can swap out the tool. I checked that grpcio-tools offers the protoc compatible tool, since it is actually protoc but with a built-in grpc plugin.
@@ -69,3 +134,4 @@ Due to [a Mac build issue](https://github.com/uber/hermetic_cc_toolchain/issues/
     * Trace it to https://github.com/rules-proto-grpc/rules_proto_grpc/tree/master/modules
   * Change paths so that the examples work again.
   * Fix weird edge cases with importing newer version bazel deps.
+
