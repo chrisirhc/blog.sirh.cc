@@ -54,6 +54,18 @@ if (updated) {
 					<slot />
 				</div>
 			</article>
+			<div>
+				<script type="module">
+					import { BlueskyComments } from 'https://unpkg.com/bluesky-comments@0.8.0/dist/bluesky-comments.es.js';
+					document.addEventListener('DOMContentLoaded', function() {
+					  const author = 'sirh.cc';
+					  if (author) {
+						BlueskyComments.init('bluesky-comments', {author});
+					  }
+					});
+				</script>
+				<div id="bluesky-comments"></div>
+			</div>
 		</main>
 		<Tags tags={allTags} all />
 		<Footer />

@@ -44,4 +44,15 @@ const { title, description, image = "/home-blog-card.png" } = Astro.props;
 
 	<!-- Sitemap -->
 	<link rel="sitemap" href="/sitemap-index.xml" />
+	
+	<!-- bluesky-comments -->
+	<link rel="stylesheet" href="https://unpkg.com/bluesky-comments@0.8.0/dist/bluesky-comments.css">
+	<script type="importmap">
+		{
+		"imports": {
+			"react": "https://esm.sh/react@18",
+			"react-dom": "https://esm.sh/react-dom@18"
+		}
+		}
+	</script>
 </head>
