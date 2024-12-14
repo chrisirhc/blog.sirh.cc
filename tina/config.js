@@ -26,7 +26,6 @@ export default defineConfig({
 				path: "src/posts",
 				defaultItem: () => ({
 					title: "New Post",
-					layout: "../layouts/BlogPost.astro",
 					added: new Date(),
 					tags: [],
 				}),
@@ -46,13 +45,6 @@ export default defineConfig({
 						type: 'boolean',
 						required: true,
 						description: 'If this is checked the post will not be published',
-					},
-					{
-						name: "layout",
-						label: "Layout",
-						type: "string",
-						required: true,
-						searchable: false,
 					},
 					{
 						name: "title",
