@@ -101,28 +101,52 @@ I found a number of comments and issues that indicate that the issue exists, and
 * [Comment in toolchains_protoc](￼) indicating that usages of grpc plugin require C++ compilation
 * Request for a precompiled gRPC plugin ([gprc\#38078](https://github.com/grpc/grpc/issues/38078))
 ### Look for precompiled gRPC plugin
-I know from the above search that there isn’t a straightforward solution 
-* Found [gRPC’s Python Quick start](https://grpc.io/docs/languages/python/quickstart/ "https://grpc.io/docs/languages/python/quickstart/") mentions [grpcio-tools package](https://pypi.org/project/grpcio-tools/).
+Even though there’s no straightforward solution, I recall that the gRPC documentation mentions a quick way to use the gRPC plugin.
+* Found [gRPC’s Python Quick start](https://grpc.io/docs/languages/python/quickstart/ "https://grpc.io/docs/languages/python/quickstart/")  
 * It can be [executed like protoc](https://pypi.org/project/grpcio-tools/#:~:text=Usage), supporting the same arguments.
 * It comes with a [built-in gRPC plug-in](https://pypi.org/project/grpcio-tools/#:~:text=INCLUDE%20%2D%2Dpython_out=$OUTPUT%20%2D%2D-,grpc_python_out,-=$OUTPUT%20$PROTO_FILES).
 
-Here’s the snippet from the [Quick Start](https://grpc.io/docs/languages/python/quickstart/):
+Here’s the snippet from the [gRPC’s Python Quick Start](https://grpc.io/docs/languages/python/quickstart/) mentioning [grpcio-tools package](https://pypi.org/project/grpcio-tools/):
 ```bash
-# grpc_python_out is the grpc plugin
 $ python -m grpc_tools.protoc -I$INCLUDE --python_out=$OUTPUT --grpc_python_out=$OUTPUT $PROTO_FILES
 ```
-Note how the arguments match those in of protoc in https://protobuf.dev/reference/python/python-generated/#invocation .
-### Formulate a solution
-* [rules_python](￼) contains the [py_binary rule](https://rules-python.readthedocs.io/en/latest/api/rules_python/python/private/py_binary_rule.html#py_binary) which makes ￼Python code into executables.
-* Python’s [runpy](￼) executes modules similar to `-m` on the command line, allowing me to execute the protoc tool similar to the Quick Start command.
-## ✨ Implementation 
+Note how the arguments match those in of protoc per the [Protobuf Python Generated Code Documentation](https://protobuf.dev/reference/python/python-generated/#invocation) :
+* `-I` specifies the directory to look for .proto files used in imports.
+* `--python_out` specifies the output directory for the Python proto compiler. It generates output files with names ending with `_pb2.py`.
+* `--grpc_python_out` specifies the output directory for the gRPC plugin. It generates output files with names ending with `_grpc.py`. **This is the plugin we’re looking for.**
+### Figure out how to run the precompiled gRPC compiler via Bazel
+[rules_python](https://rules-python.readthedocs.io) contains the [py_binary rule](https://rules-python.readthedocs.io/en/latest/api/rules_python/python/private/py_binary_rule.html#py_binary) which makes ￼Python code into executable targets. Here’s a snippet from [Getting Started documentation](https://rules-python.readthedocs.io/en/latest/getting-started.html):
+```python
+load("@rules_python//python:py_binary.bzl", "py_binary")
+
+py_binary(
+  name = "main",
+  srcs = ["main.py"],
+  deps = [
+      "@pypi//foo",
+      "@pypi//bar",
+  ]
+)
+```
+But what would be the Python code in `main.py` ?
+Python’s [runpy](￼) executes modules similar to `-m` on the command line, allowing me to execute the above Quick Start command containing precompiled gRPC plugin with this:
+```python
+import runpy
+
+runpy.run_module('grpc_tools.protoc', run_name='__main__')
+```
+## ✨ Implementation
 1. Prepare the executable tool.
    * Tools have their arguments as an input API. As long as the input arguments are compatible, we can swap out the tool. I checked that grpcio-tools offers the protoc compatible tool, since it is actually protoc but with a built-in grpc plugin.
-   1. Add grpcio-tools Python package from pip.
-   2. Make sure we can run it from py_binary as a tool.
+   1. Add grpcio-tools Python package from pip. ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/bec9362717eff4b1c7e1d69c6a080aee970ac01a))
+   2. Make sure we can run it from py_binary as a tool. ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/9d6ad74ca95a56fb382ea77c2390496313da8fe3))
 2. Replace the tool used for the grpc compilation.
-   1. Copy in python_grpc_compile definition and get it to work locally.
-   2. Point grpc_plugin into a built-in tool, to validate whether it's using the right compiled protoc executable.
+   1. Copy in python_grpc_compile definition and get it to work locally. ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/a8475c250f358bd0e9f906f6874ee16e820cca10) ) 
+   2. Point grpc_plugin into a built-in tool, to validate whether it's using the right compiled protoc executable. Expect the build to fail since I haven’t changed the actual protoc tool being used. ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/1b9ca42e15cf47e7cfc2347c2a7d48955086f083))
+   3. Create a new protoc toolchain that points to the grpcio_tools executable created in Step 1.  ([Changes](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/compare/1b9ca42e15cf47e7cfc2347c2a7d48955086f083...9013beccfb8212d15ca7029d2a45a8afe039af63))
+   4. Other changes needed to get protoc to point to our provided executable.
+      1. Enable custom proto toolchain resolution ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/2cb60ea81176d4f036f6dfea84ddb5403aa68c09))
+      2. Register a proto toolchain_type ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/6f383b38b1da24113e10311aae3572a7a56ce9d5))
 ## Gotchas
 * Which version of proto compiler is this using? Find out by going to: https://github.com/grpc/grpc/blob/v1.67.0/bazel/grpc_deps.bzl
 
