@@ -9,7 +9,6 @@ added: 2024-11-25T16:56:48.487Z
 ---
 # Using a precompiled gRPC plugin in Bazel monorepo for Python
 Reference repository: https://github.com/chrisirhc/precompiled-grpc-in-bazel-python
-
 ## Who is this written for?
 * Those who are curious what Developer Tools and Developer Platform Engineering teams work on.
 * Get a peek into what working with Bazel on a monorepo is like.
@@ -158,4 +157,3 @@ runpy.run_module('grpc_tools.protoc', run_name='__main__')
     * Trace it to https://github.com/rules-proto-grpc/rules_proto_grpc/tree/master/modules
   * Change paths so that the examples work again.
   * Fix weird edge cases with importing newer version bazel deps.
-
