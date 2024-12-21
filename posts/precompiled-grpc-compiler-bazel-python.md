@@ -147,7 +147,7 @@ runpy.run_module('grpc_tools.protoc', run_name='__main__')
       1. Enable custom proto toolchain resolution ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/2cb60ea81176d4f036f6dfea84ddb5403aa68c09))
       2. Register a proto toolchain_type ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/6f383b38b1da24113e10311aae3572a7a56ce9d5))
 ## Gotchas
-* Which version of proto compiler is this using? Find out by going to: https://github.com/grpc/grpc/blob/v1.67.0/bazel/grpc_deps.bzl
+Note that this implementation ties the protoc version to what’s distributed in the grpcio-tools package, where the proto compiler version is defined in the [grpc_deps.bzl file](https://github.com/grpc/grpc/blob/v1.67.0/bazel/grpc_deps.bzl).
 
 ## Appendix
 * How did I set up the example repository?
