@@ -138,20 +138,19 @@ import runpy
 runpy.run_module('grpc_tools.protoc', run_name='__main__')
 ```
 ## ✨ Implementation
-1. Prepare the executable tool.
-   * Tools have their arguments as an input API. As long as the input arguments are compatible, we can swap out the tool. I checked that grpcio-tools offers the protoc compatible tool, since it is actually protoc but with a built-in grpc plugin.
+1. Prepare the executable tool:
    1. Add grpcio-tools Python package from pip. ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/bec9362717eff4b1c7e1d69c6a080aee970ac01a))
-   2. Make sure we can run it from py_binary as a tool. ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/9d6ad74ca95a56fb382ea77c2390496313da8fe3))
-2. Replace the tool used for the grpc compilation.
-   1. Copy in python_grpc_compile definition and get it to work locally. ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/a8475c250f358bd0e9f906f6874ee16e820cca10) ) 
-   2. Point grpc_plugin into a built-in tool, to validate whether it's using the right compiled protoc executable. Expect the build to fail since I haven’t changed the actual protoc tool being used. ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/1b9ca42e15cf47e7cfc2347c2a7d48955086f083))
-   3. Create a new protoc toolchain that points to the grpcio_tools executable created in Step 1.  ([Changes](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/compare/1b9ca42e15cf47e7cfc2347c2a7d48955086f083...9013beccfb8212d15ca7029d2a45a8afe039af63))
-   4. Other changes needed to get protoc to point to our provided executable.
+   2. Create a `grpcio_tools` target for executing the tool, using the  `py_binary` rule. ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/9d6ad74ca95a56fb382ea77c2390496313da8fe3))
+2. Replace the gRPC plugin to use the above created target:
+   1. Copy in `python_grpc_compile` definition and get it to work locally. ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/a8475c250f358bd0e9f906f6874ee16e820cca10) ) 
+   2. Point `grpc_plugin` into the built-in tool. ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/1b9ca42e15cf47e7cfc2347c2a7d48955086f083))
+      This validates whether it's using the right compiled protoc executable. Expect the build to fail since I haven’t changed the actual protoc tool being used. 
+   3. Set up a custom `protoc` toolchain that points to the `grpcio_tools` executable created in Step 1.  ([Changes](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/compare/1b9ca42e15cf47e7cfc2347c2a7d48955086f083...9013beccfb8212d15ca7029d2a45a8afe039af63))
+   4. Other changes needed to get protoc to point to our provided executable:
       1. Enable custom proto toolchain resolution ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/2cb60ea81176d4f036f6dfea84ddb5403aa68c09))
       2. Register a proto toolchain_type ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/6f383b38b1da24113e10311aae3572a7a56ce9d5))
 ## Gotchas
-Note that this implementation ties the protoc version to what’s distributed in the grpcio-tools package, where the proto compiler version is defined in the [grpc_deps.bzl file](https://github.com/grpc/grpc/blob/v1.67.0/bazel/grpc_deps.bzl).
-
+The implementation depends on the version of `protoc` distributed with `grpcio-tools` package. The version is defined in the [grpc_deps.bzl file](https://github.com/grpc/grpc/blob/v1.67.0/bazel/grpc_deps.bzl).
 ## Appendix
 * How did I set up the example repository?
   * Use bazel modules, current standard for adding different capabilities into a repo
