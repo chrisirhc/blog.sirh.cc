@@ -24,7 +24,7 @@ Reference repository: [GitHub - precompiled-grpc-in-bazel-python](https://github
 ## A Quick Overview of Protocol Buffers (protobuf) and gRPC
 [Protocol Buffers (protobuf)](https://protobuf.dev/) is a data serialization format similar to JSON. Protobuf works by defining schemas in `.proto` files, which describe the structure of serialized data. It supports multiple programming languages, including Python and Java. A code generator called `protoc` converts `.proto` files into language-specific code for serialization and deserialization. Learn more about it [here](https://protobuf.dev/).
 
-[gRPC](https://grpc.io) is a Remote Procedure Call (RPC) framework built on top of protobuf. A simplified analogy would be to compare how [tRPC](https://trpc.io/docs/rpc) or REST relates to JSON in the same way that gRPC relates to protobuf.
+[gRPC](https://grpc.io) is a Remote Procedure Call (RPC) framework built on top of protobuf. A simplified analogy would be to compare how [tRPC](https://trpc.io/docs/rpc) or REST relates to JSON in the same way that gRPC relates to protobuf. gRPC [has a ￼`protoc`￼ plugin](https://grpc.io/docs/what-is-grpc/introduction/#:~:text=protoc%20with%20a-,special%20gRPC%20plugin,-to%20generate%20code), which I refer to as the "gRPC plugin", to generate gRPC-specific code via the `protoc` tool.
 
 ## 🎬 Starting State 
 ### Python Monorepo Managed by Bazel (aka “the monorepo”)
@@ -149,6 +149,10 @@ runpy.run_module('grpc_tools.protoc', run_name='__main__')
    4. Other changes needed to get protoc to point to our provided executable:
       1. Enable custom proto toolchain resolution ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/2cb60ea81176d4f036f6dfea84ddb5403aa68c09))
       2. Register a proto toolchain_type ([Commit](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python/commit/6f383b38b1da24113e10311aae3572a7a56ce9d5))
+## Conclusion
+With the above implementation, when `python_grpc_compile` is invoked, a precompiled gRPC plugin is used. No C++ compilation is required.
+
+If you need to set up a new project using the above setup, you can use https://github.com/chrisirhc/precompiled-grpc-in-bazel-python as a starting point.
 ## Gotchas
 The implementation depends on the version of `protoc` distributed with `grpcio-tools` package. The version is defined in the [grpc_deps.bzl file](https://github.com/grpc/grpc/blob/v1.67.0/bazel/grpc_deps.bzl).
 ## Appendix
