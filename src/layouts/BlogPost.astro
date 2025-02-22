@@ -67,6 +67,13 @@ if (updated) {
 				</script>
 				<div id="bluesky-comments"></div>
 			</div>
+			<script type="module">
+				import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.4.1/+esm';
+				mermaid.initialize({ startOnLoad: false });
+				await mermaid.run({
+					querySelector: '.language-mermaid',
+				});
+			</script>
 		</main>
 		<Tags tags={allTags} all />
 		<Footer />
