@@ -7,6 +7,9 @@ export default defineConfig({
 	base: "/",
 	integrations: [sitemap()],
 	markdown: {
-		syntaxHighlight: false,
+		syntaxHighlight: {
+			type: 'shiki',
+			excludeLangs: ['mermaid'],
+		},
 	},
 });
