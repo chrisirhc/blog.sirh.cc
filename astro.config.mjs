@@ -7,9 +7,9 @@ export default defineConfig({
 	base: "/",
 	integrations: [sitemap()],
 	markdown: {
-		shikiConfig: {
-			theme: "material-theme-darker",
-			langs: [],
+		syntaxHighlight: {
+			type: 'shiki',
+			excludeLangs: ['mermaid'],
 		},
 	},
 });
