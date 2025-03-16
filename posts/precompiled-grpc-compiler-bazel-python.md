@@ -7,7 +7,6 @@ tags:
   - technical
 added: 2024-11-25T16:56:48.487Z
 ---
-# Using a Precompiled gRPC Plugin in a Bazel Monorepo for Python
 Reference repository: [GitHub - precompiled-grpc-in-bazel-python](https://github.com/chrisirhc/precompiled-grpc-in-bazel-python)
 
 ## Who Is This Written For?
